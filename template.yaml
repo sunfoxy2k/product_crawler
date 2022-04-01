@@ -1,0 +1,45 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  python3.8
+
+  Sample SAM Template for product_crawler
+
+
+Resources:
+  CSVResource:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: PublicRead
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls : false
+        BlockPublicPolicy : false
+        IgnorePublicAcls : false
+        RestrictPublicBuckets : false
+
+  CSVUpdateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.8
+      CodeUri: src/saroshsalman
+      Handler: app.lambda_handler
+      Timeout: 600
+      MemorySize: 2048
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref CSVResource
+      Environment:
+        Variables:
+          CSVBucket: !Ref CSVResource
+      Events:
+        CSVUpdate:
+          Type: HttpApi
+          Properties:
+            Path: /
+            Method: get
+
+Outputs:
+  CSVBucket:
+    Value: !Ref CSVResource
+  CSVUpateLink:
+    Value: !Ref CSVUpdateFunction
