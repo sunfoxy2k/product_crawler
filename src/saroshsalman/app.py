@@ -1,5 +1,7 @@
 import scrapydo
 from saroshsalman.spiders.products import ProductsSpider
+from saroshsalman.spiders.suffuse_website import SUFFSpider
+from saroshsalman.spiders.baroque_website import BaroqueSpider
 import pandas as pd
 import ast
 import os
@@ -10,9 +12,19 @@ import boto3
 def lambda_handler(event, context):
     msg = ''
     statusCode = None
+    query_parameter = event.get('queryStringParameters')
+    spider = None
+
+    if query_parameter.get('source') == 'sarosalman':
+        spider = ProductsSpider
+    elif query_parameter.get('source') == 'suffuse':
+        spider = SUFFSpider
+    else: # baroque.pk
+        spider = BaroqueSpider
+
     try:
         scrapydo.setup()
-        scrapydo.run_spider(ProductsSpider)
+        scrapydo.run_spider(spider)
         df = pd.read_csv('/tmp/data.csv')
         os.makedirs('/tmp/result/data', exist_ok=True)
         df['image_urls'] = df['image_urls'].apply(lambda x: x.replace(',', '|'))
@@ -29,9 +41,9 @@ def lambda_handler(event, context):
         shutil.make_archive('/tmp/result', 'zip', '/tmp/result')
         s3 = boto3.client('s3')
         with open('/tmp/result.zip', 'rb') as result:
-            s3.upload_fileobj(result, Bucket=os.getenv('CSVBucket'), Key='result.zip')
+            s3.upload_fileobj(result, Bucket=os.getenv('CSVBucket'), Key= f'{query_parameter.get("source")}.zip')
             s3 = boto3.resource('s3')
-            object_acl = s3.ObjectAcl(os.getenv('CSVBucket'), 'result.zip')
+            object_acl = s3.ObjectAcl(os.getenv('CSVBucket'), f'{query_parameter.get("source")}.zip')
             object_acl.put(ACL='public-read')
     except Exception as e:
         statusCode = 503

@@ -7,7 +7,7 @@ import re
 import math
 
 class ProductsSpider(Spider):
-    name = 'products'
+    name = 'saroshalman_spider'
     allowed_domains = ['saroshsalman.com']
     start_urls = ['http://saroshsalman.com/']
     custom_settings = {
@@ -34,6 +34,17 @@ class ProductsSpider(Spider):
         description = [feature.strip() for feature in selector.css('p::text').getall()]
         description = [feature for feature in description if feature != '']
         prefix = kwargs['url'].replace('http://saroshsalman.com/', '')
+        diamond = math.ceil(resp['price'] / 100 / 25)
+
+        if 0 < diamond < 4:
+            product_type = "Casual Wear"
+        elif diamond < 8:
+            product_type = "Party Wear"
+        elif diamond < 22:
+            product_type = "Formal Wear"
+        else:
+            product_type = "Bridal Wear"
+
         item = {
             'tax:product_type': 'variable',
             'visibility': 'visible',
@@ -42,7 +53,7 @@ class ProductsSpider(Spider):
             'stock_status': 'instock',
             'backorders_allowed': 0,
             'attribute_default:Size': resp['variants'][0]['title'],
-            'tax:product_cat': f"Formal Wear > {resp['type']}",
+            'tax:product_cat': f"{product_type} > {resp['type']}",
             'post_title': resp['title'],
             'post_date': resp['published_at'],
             'post_content': '\n'.join(description),
@@ -61,7 +72,7 @@ class ProductsSpider(Spider):
             'meta:price_max': f'${resp["price_max"] / 100}',
             'collection': kwargs['url'].split('/collections/')[-1].split('/')[0],
             'image_paths': '|'.join([
-                f'https://foreverdulhan.com/wp-content/uploads/product_images/{prefix}/{re.match(r".+jpg", img["src"].split("/")[-1], re.IGNORECASE).group()}'
+                f'https://foreverdulhan.com/wp-content/uploads/product_images/{prefix}/{re.match(r".+((png)|(jpg))", img["src"].split("/")[-1], re.IGNORECASE).group()}'
                 for img in resp['media']]),
             'image_urls': [img['src'] for img in resp['media']],
             'image_path_prefix': prefix,
