@@ -8,8 +8,19 @@ import ast
 
 size_chart_dic = {}
 
+urls_text = requests.get('https://baroque.pk/products/embroidered-organza-dupatta-31').text.split(
+    '''<script>(function() {
+  function asyncLoad() {
+    var urls = '''
+)[1].split(';')[0]
+
+urls = ast.literal_eval(urls_text)
+
+size_guide_url = [url.replace('\\/', '/') for url in urls if 'size-guides' in url][0]
+
+
 script = requests.get(
-    'https://size-guides.esc-apps-cdn.com/1654081376-app.baroque-pk.myshopify.com.js?shop=baroque-pk.myshopify.com').text
+    size_guide_url).text
 
 size_data = ast.literal_eval(
     script.split('window.eastsideco_sizeGuides.cachedCharts=')[1].split(
@@ -59,12 +70,12 @@ class BaroqueSpider(Spider):
     def parse_product(self, response, **kwargs):
         resp = response.json()
         prefix = kwargs['url'].replace('http://baroque.pk/', '')
-        diamond = math.ceil(resp['price'] / 100 / 25)
+        diamond = math.ceil(resp['price'] / 100 / 25  * 0.0050)
 
 
-        if 0 < diamond < 4:
+        if 0 < diamond < 3:
             product_type = "Casual Wear"
-        elif diamond < 8:
+        elif diamond < 5:
             product_type = "Party Wear"
         elif diamond < 22:
             product_type = "Formal Wear"
